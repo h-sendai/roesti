@@ -1,0 +1,65 @@
+\documentclass[11pt]{jsarticle}
+\usepackage{fancyvrb}
+\usepackage{path}
+\usepackage{graphicx}
+\fvset{
+    tabsize=4,
+    baselinestretch=0.55,
+    numbers=left,
+    frame=single,
+    framesep=5pt,
+    numbersep=5pt,
+    fontsize=\small,
+    % fontfamily=courier,
+    % frame=topline,
+    % frame=bottomline,
+    % frame=lines,
+    % frame=single,
+    % firstnumber=100,
+    % firstnumber=last,
+    % comment
+}
+% \begin{Verbatim}
+% \end{Verbatim}
+% \VerbatimInput{filename}[option]
+
+\newcommand{\Section}[1]{\section{#1}\noindent}
+
+\author{}
+\date{}
+\title{}
+\begin{document}
+%\maketitle
+
+\section*{ROESTIパケットフォーマット}
+
+(2012年11月15日)
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[bb=200 100 610 540,scale=0.5]{roesti-packet-format.pdf}
+\end{figure}
+
+\begin{tabular}[h]{ll}
+  上の図 & \\
+　Magic Word(32bit) & 0x89abcdef \\
+　Type(32bit) & 上位24bitが0xFF0000 + 下位8bitがボードナンバー \\
+　Length(32bit) & データパケット（Data Packet）の全体バイト長 \\
+　Number(32bit) & イベントナンバー \\
+　Data Packet & 中身はPDFの下の図 \\
+　Trailer(32bit) & 0xfedcba98 \\
+  下の図 & \\
+　Data Packet Header(16bit) & 0x1234 \\
+　board Number(8bit) & ボードナンバー \\
+　Channel Number(8bit) & ボード内のチャンネルナンバー \\
+　Stop ID(6bit) & 0x3F \\
+　Stop Number(10bit) & DRS4のサンプリングが止まったキャパシターの番号 \\
+　Data Length(16bit) & 次のデータのバイト長 \\
+　Data(16bit) & 0x0000(4bit) + ADC Data(12bit) \\
+　Data Packet Footer(16bit) & 0x5678 \\
+　status(8bit) & 0xCC(未使用) \\
+　check sum(8bit) & 0x00(未使用) \\
+\end{tabular}
+
+
+\end{document}
