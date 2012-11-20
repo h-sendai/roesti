@@ -1,0 +1,6 @@
+syntax: glob
+.depend
+*.o
+*.d
+*~
+decoder/read_roesti
