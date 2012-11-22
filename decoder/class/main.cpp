@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 
 #if 0
         // specify data packet len 
-        int len = data.get_data_packet_len();
+        int len = data.get_total_data_packet_len();
         n = data.read_data_packet(len);
         n = data.read_trailer(len);
 #endif

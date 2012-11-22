@@ -58,7 +58,7 @@ int RoestiDataFile::read_header()
 
 int RoestiDataFile::read_data_packet()
 {
-    int len = get_data_packet_len();
+    int len = get_total_data_packet_len();
     int n = read_data_packet(len);
 
     return n;
@@ -80,7 +80,7 @@ int RoestiDataFile::read_data_packet(int data_packet_len)
 
 int RoestiDataFile::read_trailer()
 {
-    int len = get_data_packet_len();
+    int len = get_total_data_packet_len();
     int n = read_trailer(len);
 
     return n;

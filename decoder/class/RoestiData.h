@@ -53,7 +53,7 @@ public:
     int  get_type_u_24();
     char get_board_num();
     int  get_event_num();
-    int  get_data_packet_len();
+    int  get_total_data_packet_len();
     int  get_trailer();
     int  get_data_packet_header() { return 0; };
     int  get_channel_num() { return 0; };
@@ -144,9 +144,9 @@ int RoestiData::get_event_num()
 
 }
 
-int RoestiData::get_data_packet_len()
+int RoestiData::get_total_data_packet_len()
 {
-    //std::cerr << "### get_data_packet_len() ###" << std::endl;
+    //std::cerr << "### get_total_data_packet_len() ###" << std::endl;
     int x;
     memcpy(&x, &buf[ROESTI_MAGIC_WORD_LEN + ROESTI_TYPE_LEN], sizeof(int));
 
@@ -156,7 +156,7 @@ int RoestiData::get_data_packet_len()
 int RoestiData::get_trailer()
 {
     int x;
-    int data_packet_len = get_data_packet_len();
+    int data_packet_len = get_total_data_packet_len();
     memcpy(&x, &buf[ROESTI_HEADER_LEN + data_packet_len], sizeof(int));
 
     return ntohl(x);
@@ -167,7 +167,7 @@ int RoestiData::decode_header(struct roesti_header *header)
     header->magic_word      = get_magic_word();
     header->type_u_24       = get_type_u_24();
     header->board_num       = get_board_num();
-    header->data_packet_len = get_data_packet_len();
+    header->data_packet_len = get_total_data_packet_len();
     header->event_num       = get_event_num();
 
     return 0;
@@ -219,7 +219,7 @@ bool RoestiData::is_valid_trailer()
 int RoestiData::init_process_data()
 {
     //std::cerr << "### init_process_data ###" << std::endl;
-    data_buf_len = get_data_packet_len();
+    data_buf_len = get_total_data_packet_len();
     data_buf_pos = 0;
     return 0;
 }
