@@ -4,3 +4,4 @@ syntax: glob
 *.d
 *~
 decoder/read_roesti
+decoder/class/main
