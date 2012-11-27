@@ -53,26 +53,27 @@ int main(int argc, char *argv[])
         // process data packet
         data.init_process_data();
         while (data.has_left_data()) {
-#if 0
             if (data.is_valid_data_packet_header()) {
                 printf("data header OK\n");
+            }
             else {
                 exit(1);
             }
-#endif
-            int n_data = data.get_data_len();
+            int n_data = data.get_n_data();
             printf("n_data: %d\n", n_data);
-            n_data = n_data / 2;
             for (int i = 0; i < n_data; i++) {
                 short value = data.get_data_at(i);
                 printf("data: %d\n", value);
             }
-//            if (data.is_valid_data_packet_trailer) {
-//                printf("data trailer OK\n");
-//            }
-//            else {
-//                exit(1);
-//            }
+            unsigned char checksum = data.get_checksum();
+            printf("checksum: %02x\n", checksum);
+
+            if (data.is_valid_data_packet_trailer()) {
+                printf("data trailer OK\n");
+            }
+            else {
+                exit(1);
+            }
             data.seek_to_next_data();
         }
     }

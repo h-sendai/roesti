@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 
 #include <err.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <iostream>
@@ -47,6 +48,7 @@ public:
     //
     bool is_valid_header();
     bool is_valid_data_packet_header();
+    bool is_valid_data_packet_trailer();
     bool is_valid_trailer();
     //
     int  get_magic_word();
@@ -55,15 +57,18 @@ public:
     int  get_event_num();
     int  get_total_data_packet_len();
     int  get_trailer();
-    int  get_data_packet_header() { return 0; };
-    int  get_channel_num() { return 0; };
-    int  get_stop_id() { return 0; };
     //
-    bool seek_to_next_data();
-    int  get_data_len();
-    int  get_data_packet_footer() { return 0; };
-    int  get_status() { return 0; };
-    int  get_checksum() { return 0; };
+    bool  seek_to_next_data();
+    unsigned short get_data_packet_header();
+    unsigned char  get_board_num_in_data_packet();
+    unsigned char  get_channel_num();
+    unsigned short get_data_len();
+    unsigned short get_n_data();
+    unsigned char  get_stop_id();
+    unsigned short get_stop_num();
+    unsigned short get_data_packet_footer();
+    unsigned char  get_status();
+    unsigned char  get_checksum();
     // max 65536 bytes data + header size
     const static int BUFFER_SIZE = 128*1024; // 128kB
     unsigned char buf[BUFFER_SIZE];
@@ -84,7 +89,7 @@ public:
     const static int   ROESTI_VALID_TRAILER            = 0xfedcba98;
     const static short ROESTI_VALID_DATA_PACKET_HEADER = 0x1234;
     const static char  ROESTI_VALID_STOP_ID            = 0x3f;
-    const static short ROESTI_DATA_PACKET_FOOTER       = 0x5678;
+    const static short ROESTI_VALID_DATA_PACKET_FOOTER = 0x5678;
     const static char  ROESTI_VALID_STATUS             = 0xcc;
     const static char  ROESTI_VALID_CHECKSUM           = 0x00;
     // data decode
@@ -189,14 +194,14 @@ bool RoestiData::is_valid_header()
 {
     int magic_word = get_magic_word();
     if (magic_word != ROESTI_VALID_MAGIC_WORD) {
-        warnx("does not have valid magic: %08x (should be %08x)",
+        warnx("does not have valid magic: %08x (expect %08x)",
             magic_word, ROESTI_VALID_MAGIC_WORD);
         return false;
     }
 
     int type_u_24 = get_type_u_24();
     if (type_u_24 != ROESTI_VALID_TYPE_U_24) {
-        warnx("does not have valid type upper 24 bit: %06x (should be %06x)",
+        warnx("does not have valid type upper 24 bit: %06x (expect %06x)",
             type_u_24, ROESTI_VALID_TYPE_U_24);
         return false;
     }
@@ -208,7 +213,7 @@ bool RoestiData::is_valid_trailer()
 {
     int trailer = get_trailer();
     if (trailer != ROESTI_VALID_TRAILER) {
-        warnx("does not have valid trailer: %08x (should be %08x)",
+        warnx("does not have valid trailer: %08x (expect %08x)",
             trailer, ROESTI_VALID_TRAILER);
         return false;
     }
@@ -240,11 +245,72 @@ bool RoestiData::has_left_data()
     }
 }
 
-int RoestiData::get_data_len()
+unsigned short RoestiData::get_data_packet_header()
 {
-    int short x;
+    unsigned short x;
+    memcpy(&x, &buf[ROESTI_HEADER_LEN + data_buf_pos + 0], sizeof(short));
+
+    return ntohs(x);
+}
+
+unsigned char RoestiData::get_board_num_in_data_packet()
+{
+    return buf[ROESTI_HEADER_LEN + data_buf_pos + 2];
+}
+
+unsigned char RoestiData::get_channel_num()
+{
+    return buf[ROESTI_HEADER_LEN + data_buf_pos + 3];
+}
+
+unsigned char RoestiData::get_stop_id()
+{
+    unsigned char x = buf[ROESTI_HEADER_LEN + data_buf_pos + 4];
+    x = (x >> 2);
+
+    return x;
+}
+
+unsigned short RoestiData::get_stop_num()
+{
+    unsigned short x = 
+         ((buf[ROESTI_HEADER_LEN + data_buf_pos + 4] & 0x3) << 8) +
+           buf[ROESTI_HEADER_LEN + data_buf_pos + 5];
+
+    return x;
+}
+
+unsigned short RoestiData::get_n_data()
+{
+    unsigned short x = get_data_len();
+    return x / 2;
+}
+
+unsigned short RoestiData::get_data_len()
+{
+    unsigned short x;
     memcpy(&x, &buf[ROESTI_HEADER_LEN + data_buf_pos + 6], sizeof(short));
     return ntohs(x);
+}
+
+unsigned short RoestiData::get_data_packet_footer()
+{
+    unsigned short x;
+    unsigned short data_len = get_data_len();
+    memcpy(&x, &buf[ROESTI_HEADER_LEN + data_buf_pos + 8 + data_len], sizeof(short));
+    return ntohs(x);
+}
+
+unsigned char RoestiData::get_status()
+{
+    unsigned short data_len = get_data_len();
+    return buf[ROESTI_HEADER_LEN + data_buf_pos + 8 + data_len + 2];
+}
+
+unsigned char RoestiData::get_checksum()
+{
+    unsigned short data_len = get_data_len();
+    return buf[ROESTI_HEADER_LEN + data_buf_pos + 8 + data_len + 3];
 }
 
 bool RoestiData::seek_to_next_data()
@@ -264,8 +330,50 @@ int RoestiData::get_data_at(int n)
     return ntohs(data);
 }
 
+bool RoestiData::is_valid_data_packet_trailer()
+{
+    short footer = get_data_packet_footer();
+    char  status = get_status();
+    char  checksum = get_checksum();
+
+    if (footer != ROESTI_VALID_DATA_PACKET_FOOTER) {
+        warnx("does not have valid data packet footer: %04x (expect %04x)",
+            footer, ROESTI_VALID_DATA_PACKET_FOOTER);
+        return false;
+    }
+
+    if (status != ROESTI_VALID_STATUS) {
+        warnx("does not have valid data packet status: %02x (expect %02x)",
+            footer, ROESTI_VALID_STATUS);
+        return false;
+    }
+
+    if (checksum != ROESTI_VALID_CHECKSUM) {
+        warnx("does not have valid data packet checksum: %02x (expect %02x)",
+            footer, ROESTI_VALID_CHECKSUM);
+        return false;
+    }
+
+    return true;
+}
+
 bool RoestiData::is_valid_data_packet_header()
 {
+    short data_packet_header = get_data_packet_header();
+    char  stop_id            = get_stop_id();
+    
+    if (data_packet_header != ROESTI_VALID_DATA_PACKET_HEADER) {
+        warnx("does not have valid data packet header: %04x (expect %04x)",
+            data_packet_header, ROESTI_VALID_DATA_PACKET_HEADER);
+        return false;
+    }
+
+    if (stop_id != ROESTI_VALID_STOP_ID) {
+        warnx("does not have valid stop id: %02x (expect %02x)",
+            stop_id, ROESTI_VALID_STOP_ID);
+        return false;
+    }
+
     return true;
 }
 #endif
