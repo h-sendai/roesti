@@ -1,0 +1,24 @@
+ROESTIデコードプログラム KEK 千代浩司
+
+開発された阪大林さんからいただいたフォーマットを
+もとにデコードプログラムを書きました。
+
+Makefile
+decoder/read_roesti.cpp
+decoder/roesti_decoder.h
+decoder/roesti-run65.dat (林さんにいただいたサンプルデータ)
+これらは最初に書いたプログラムです。
+このあと、C++のclass化したものを
+
+decoder/class/
+
+にいれてあります。使うのはこちらのほうがいいかもしれません。
+
+decoder/class/Makefile
+             /RoestiData.h     (デコーダ本体)
+             /RoestiDataFile.h (ファイルを読んでRoestiData.hを使ってデコードするクラス)
+             /main.cpp         (C++ main()がここにあります)
+             /sample.dat       (林さんにいただいたサンプルデータ)
+
+doc/fy2012_hayashi_m-thesis.pdf (林さん修士論文)
+   /packet.pdf                  (パケットフォーマット)
